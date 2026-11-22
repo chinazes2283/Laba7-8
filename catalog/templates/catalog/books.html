@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="uk">
+<meta charset="utf-8">
+<title>Каталог бібліотеки</title>
+<h1>Каталог бібліотеки</h1>
+<ul>
+{% for book in books %}
+  <li><a href="{% url 'book-detail' book.pk %}">{{ book.title }}</a> — {{ book.publisher.name }}
+    {% for author in book.authors.all %}{{ author }}{% if not forloop.last %}, {% endif %}{% endfor %}
+  </li>
+{% empty %}
+  <li>Каталог порожній</li>
+{% endfor %}
+</ul>
+</html>

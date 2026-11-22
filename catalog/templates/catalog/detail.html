@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="uk">
+<meta charset="utf-8">
+<title>{{ book.title }}</title>
+<h1>{{ book.title }}</h1>
+<p>{{ book.publisher.name }}, {{ book.year }}</p>
+<p>ISBN {{ book.isbn }}</p>
+<a href="{% url 'book-list' %}">До каталогу</a>
+</html>
