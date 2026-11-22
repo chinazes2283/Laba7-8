@@ -1,6 +1,22 @@
+# Python
 __pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Pytest and coverage
 .pytest_cache/
 .coverage
-.venv/
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Local settings
+.env
+.env.*
+!.env.example
+
+# SQLite and Flask instance data
 *.sqlite3
+*.sqlite3-*
 instance/
