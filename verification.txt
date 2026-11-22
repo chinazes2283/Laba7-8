@@ -1,0 +1,269 @@
+=== Recreating both migration histories ===
+
+$ python manage.py makemigrations catalog
+Migrations for 'catalog':
+  catalog/migrations/0001_initial.py
+    + Create model Author
+    + Create model Publisher
+    + Create model Book
+    + Create model BookDetails
+
+$ python manage.py migrate --noinput
+Operations to perform:
+  Apply all migrations: auth, catalog, contenttypes, sessions
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying catalog.0001_initial... OK
+  Applying sessions.0001_initial... OK
+
+$ python manage.py makemigrations catalog
+Migrations for 'catalog':
+  catalog/migrations/0002_bookdetails_summary.py
+    + Add field summary to bookdetails
+
+$ python manage.py migrate --noinput
+Operations to perform:
+  Apply all migrations: auth, catalog, contenttypes, sessions
+Running migrations:
+  Applying catalog.0002_bookdetails_summary... OK
+
+$ python manage.py showmigrations catalog
+catalog
+ [X] 0001_initial
+ [X] 0002_bookdetails_summary
+
+$ python manage.py sqlmigrate catalog 0002
+BEGIN;
+--
+-- Add field summary to bookdetails
+--
+CREATE TABLE "new__catalog_bookdetails" ("id" integer NOT NULL PRIMARY KEY AUTOINCREMENT, "summary" text NOT NULL, "pages" integer unsigned NOT NULL CHECK ("pages" >= 0), "language" varchar(40) NOT NULL, "book_id" bigint NOT NULL UNIQUE REFERENCES "catalog_book" ("id") DEFERRABLE INITIALLY DEFERRED);
+INSERT INTO "new__catalog_bookdetails" ("id", "pages", "language", "book_id", "summary") SELECT "id", "pages", "language", "book_id", '' FROM "catalog_bookdetails";
+DROP TABLE "catalog_bookdetails";
+ALTER TABLE "new__catalog_bookdetails" RENAME TO "catalog_bookdetails";
+COMMIT;
+
+$ python -m flask --app flask_app db init
+Creating directory /tmp/tmpn5kdkmqf/recreated/migrations ...  done
+Creating directory /tmp/tmpn5kdkmqf/recreated/migrations/versions ...  done
+Generating /tmp/tmpn5kdkmqf/recreated/migrations/alembic.ini ...  done
+Generating /tmp/tmpn5kdkmqf/recreated/migrations/script.py.mako ...  done
+Generating /tmp/tmpn5kdkmqf/recreated/migrations/env.py ...  done
+Generating /tmp/tmpn5kdkmqf/recreated/migrations/README ...  done
+Please edit configuration/connection/logging settings in /tmp/tmpn5kdkmqf/recreated/migrations/alembic.ini before proceeding.
+
+$ python -m flask --app flask_app db migrate -m initial catalog
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.schemas
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.tables
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.types
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.constraints
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.defaults
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.comments
+INFO  [alembic.autogenerate.compare.tables] Detected added table 'author'
+INFO  [alembic.autogenerate.compare.tables] Detected added table 'publisher'
+INFO  [alembic.autogenerate.compare.tables] Detected added table 'book'
+INFO  [alembic.autogenerate.compare.tables] Detected added table 'book_authors'
+INFO  [alembic.autogenerate.compare.tables] Detected added table 'book_details'
+Generating /tmp/tmpn5kdkmqf/recreated/migrations/versions/0f70e59a79ff_initial_catalog.py ...  done
+
+$ python -m flask --app flask_app db upgrade
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 0f70e59a79ff, initial catalog
+
+$ python -m flask --app flask_app db migrate -m add summary
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.schemas
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.tables
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.types
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.constraints
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.defaults
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.comments
+INFO  [alembic.autogenerate.compare.tables] Detected added column 'book_details.summary'
+Generating /tmp/tmpn5kdkmqf/recreated/migrations/versions/7dd8bb9d8026_add_summary.py ...  done
+
+$ python -m flask --app flask_app db upgrade
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade 0f70e59a79ff -> 7dd8bb9d8026, add summary
+
+$ python -m flask --app flask_app db history
+0f70e59a79ff -> 7dd8bb9d8026 (head), add summary
+<base> -> 0f70e59a79ff, initial catalog
+
+=== Verifying bundled migrations ===
+
+$ python manage.py migrate --noinput
+Operations to perform:
+  Apply all migrations: auth, catalog, contenttypes, sessions
+Running migrations:
+  Applying contenttypes.0001_initial... OK
+  Applying contenttypes.0002_remove_content_type_name... OK
+  Applying auth.0001_initial... OK
+  Applying auth.0002_alter_permission_name_max_length... OK
+  Applying auth.0003_alter_user_email_max_length... OK
+  Applying auth.0004_alter_user_username_opts... OK
+  Applying auth.0005_alter_user_last_login_null... OK
+  Applying auth.0006_require_contenttypes_0002... OK
+  Applying auth.0007_alter_validators_add_error_messages... OK
+  Applying auth.0008_alter_user_username_max_length... OK
+  Applying auth.0009_alter_user_last_name_max_length... OK
+  Applying auth.0010_alter_group_name_max_length... OK
+  Applying auth.0011_update_proxy_permissions... OK
+  Applying auth.0012_alter_user_first_name_max_length... OK
+  Applying catalog.0001_initial... OK
+  Applying catalog.0002_bookdetails_summary... OK
+  Applying sessions.0001_initial... OK
+
+$ python manage.py makemigrations --check --dry-run
+No changes detected
+
+$ python manage.py showmigrations catalog
+catalog
+ [X] 0001_initial
+ [X] 0002_bookdetails_summary
+
+$ python manage.py sqlmigrate catalog 0002
+BEGIN;
+--
+-- Add field summary to bookdetails
+--
+CREATE TABLE "new__catalog_bookdetails" ("id" integer NOT NULL PRIMARY KEY AUTOINCREMENT, "summary" text NOT NULL, "pages" integer unsigned NOT NULL CHECK ("pages" >= 0), "language" varchar(40) NOT NULL, "book_id" bigint NOT NULL UNIQUE REFERENCES "catalog_book" ("id") DEFERRABLE INITIALLY DEFERRED);
+INSERT INTO "new__catalog_bookdetails" ("id", "pages", "language", "book_id", "summary") SELECT "id", "pages", "language", "book_id", '' FROM "catalog_bookdetails";
+DROP TABLE "catalog_bookdetails";
+ALTER TABLE "new__catalog_bookdetails" RENAME TO "catalog_bookdetails";
+COMMIT;
+
+$ python -m flask --app flask_app db upgrade
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 0001_catalog, Create the catalog tables.
+INFO  [alembic.runtime.migration] Running upgrade 0001_catalog -> 0002_summary, Add the optional summary and preserve existing rows.
+
+$ python -m flask --app flask_app db check
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.schemas
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.tables
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.types
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.constraints
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.defaults
+INFO  [alembic.runtime.plugins] setting up autogenerate plugin alembic.autogenerate.comments
+No new upgrade operations detected.
+
+$ python -m flask --app flask_app db current
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+0002_summary (head)
+publisher ['id', 'name', 'city', 'founded_year']
+author ['id', 'full_name', 'country', 'bio']
+book ['id', 'title', 'isbn', 'year', 'status', 'publisher_id']
+  FK publisher_id -> publisher.id (ON DELETE RESTRICT)
+book_authors ['book_id', 'author_id']
+  FK author_id -> author.id (ON DELETE CASCADE)
+  FK book_id -> book.id (ON DELETE CASCADE)
+book_details ['id', 'book_id', 'pages', 'language', 'summary']
+  FK book_id -> book.id (ON DELETE CASCADE)
+
+$ python manage.py demo_django
+CREATE: River, Forest
+READ: River
+FILTER: ['River']
+EXCLUDE: ['River']
+OR: ['Forest', 'River']
+AGGREGATE: {'count': 2, 'average_year': 2021.5}
+ANNOTATE: 2
+RELATED: Kyiv; 240; ['Olena Bondar']
+REVERSE: ['Forest', 'River']
+UPDATE: River Revised
+DELETE: remaining=1, exists=False
+
+$ python -m flask_app.demo
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 0001_catalog, Create the catalog tables.
+INFO  [alembic.runtime.migration] Running upgrade 0001_catalog -> 0002_summary, Add the optional summary and preserve existing rows.
+CREATE: River, Forest
+READ: River
+FILTER: ['River']
+EXCLUDE: ['River']
+OR: ['Forest', 'River']
+AGGREGATE: {'count': 2, 'average_year': 2021.5}
+GROUP BY: 2
+RELATED: Kyiv; 240; ['Olena Bondar']
+REVERSE: ['Forest', 'River']
+UPDATE: River Revised
+DELETE: remaining=1, exists=False
+ROLLBACK: duplicate ISBN, temporary authors=0
+
+$ python -m pytest -v --cov=catalog --cov=flask_app --cov-report=term-missing
+============================= test session starts ==============================
+platform linux -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0 -- /opt/hostedtoolcache/Python/3.12.16/x64/bin/python
+cachedir: .pytest_cache
+django: version: 5.2.19, settings: django_config.settings (from ini)
+rootdir: /tmp/tmpn5kdkmqf/bundled
+configfile: pytest.ini
+testpaths: tests
+plugins: django-4.14.0, cov-7.1.0, flask-1.3.0
+collecting ... collected 24 items
+
+tests/test_django_http.py::test_django_catalog PASSED                    [  4%]
+tests/test_django_http.py::test_django_detail PASSED                     [  8%]
+tests/test_django_http.py::test_django_missing_book PASSED               [ 12%]
+tests/test_django_http.py::test_django_member_catalog_opens_for_user PASSED [ 16%]
+tests/test_django_models.py::test_django_book_defaults_and_labels PASSED [ 20%]
+tests/test_django_models.py::test_django_title_length[1-True] PASSED     [ 25%]
+tests/test_django_models.py::test_django_title_length[150-True] PASSED   [ 29%]
+tests/test_django_models.py::test_django_title_length[151-False] PASSED  [ 33%]
+tests/test_django_models.py::test_django_unique_isbn PASSED              [ 37%]
+tests/test_django_models.py::test_django_cascade_and_reverse_relationships PASSED [ 41%]
+tests/test_django_models.py::test_django_publisher_is_protected PASSED   [ 45%]
+tests/test_mocks.py::test_notify_book_available_calls_mail_backend PASSED [ 50%]
+tests/test_mocks.py::test_current_year_catalog_uses_local_date PASSED    [ 54%]
+tests/test_django_http.py::test_django_member_catalog_redirects_guest PASSED [ 58%]
+tests/test_flask_http.py::test_flask_catalog PASSED                      [ 62%]
+tests/test_flask_http.py::test_flask_creates_book_from_json PASSED       [ 66%]
+tests/test_flask_http.py::test_flask_rejects_bad_payload[payload0-400] PASSED [ 70%]
+tests/test_flask_http.py::test_flask_rejects_bad_payload[payload1-400] PASSED [ 75%]
+tests/test_flask_http.py::test_flask_rejects_bad_payload[payload2-404] PASSED [ 79%]
+tests/test_flask_http.py::test_flask_rejects_duplicate_isbn PASSED       [ 83%]
+tests/test_flask_models.py::test_flask_book_defaults_and_relationships PASSED [ 87%]
+tests/test_flask_models.py::test_flask_isbn_is_unique PASSED             [ 91%]
+tests/test_flask_models.py::test_flask_book_cascades_to_details PASSED   [ 95%]
+tests/test_flask_models.py::test_flask_book_requires_existing_publisher PASSED [100%]
+
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.12.16-final-0 _______________
+
+Name                                         Stmts   Miss  Cover   Missing
+--------------------------------------------------------------------------
+catalog/__init__.py                              0      0   100%
+catalog/management/__init__.py                   0      0   100%
+catalog/management/commands/__init__.py          0      0   100%
+catalog/management/commands/demo_django.py      39     39     0%   1-54
+catalog/models.py                               48      0   100%
+catalog/services.py                              7      0   100%
+catalog/views.py                                16      1    94%   11
+flask_app/__init__.py                           13      0   100%
+flask_app/demo.py                               59     59     0%   1-80
+flask_app/models.py                             45      0   100%
+flask_app/views.py                              29      0   100%
+--------------------------------------------------------------------------
+TOTAL                                          256     99    61%
+============================== 24 passed in 0.63s ==============================
